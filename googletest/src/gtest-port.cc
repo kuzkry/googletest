@@ -34,9 +34,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <chrono>
 #include <cstdint>
 #include <fstream>
 #include <memory>
+#include <thread>
 
 #if GTEST_OS_WINDOWS
 # include <windows.h>
@@ -277,11 +279,11 @@ size_t GetThreadCount() {
 
 #endif  // GTEST_OS_LINUX
 
-#if GTEST_IS_THREADSAFE && GTEST_OS_WINDOWS
-
 void SleepMilliseconds(int n) {
-  ::Sleep(static_cast<DWORD>(n));
+  std::this_thread::sleep_for(std::chrono::nanoseconds(n));
 }
+
+#if GTEST_IS_THREADSAFE && GTEST_OS_WINDOWS
 
 AutoHandle::AutoHandle()
     : handle_(INVALID_HANDLE_VALUE) {}
