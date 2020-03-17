@@ -45,12 +45,10 @@
 GTEST_DISABLE_MSC_WARNINGS_PUSH_(4127 /* conditional expression is constant */)
 #endif  //  _MSC_VER
 
-#if GTEST_IS_THREADSAFE
 using testing::ScopedFakeTestPartResultReporter;
 using testing::TestPartResultArray;
 
 using testing::Notification;
-#endif
 
 namespace posix = ::testing::internal::posix;
 
@@ -259,7 +257,6 @@ TEST(SCOPED_TRACETest, CanBeRepeated) {
                 << "contain trace point A, B, and D.";
 }
 
-#if GTEST_IS_THREADSAFE
 // Tests that SCOPED_TRACE()s can be used concurrently from multiple
 // threads.  Namely, an assertion should be affected by
 // SCOPED_TRACE()s in its own thread only.
@@ -332,7 +329,6 @@ TEST(SCOPED_TRACETest, WorksConcurrently) {
       << "Expected failure #6 (in thread A, no trace alive).";
   thread.join();
 }
-#endif  // GTEST_IS_THREADSAFE
 
 // Tests basic functionality of the ScopedTrace utility (most of its features
 // are already tested in SCOPED_TRACETest).
@@ -476,8 +472,6 @@ TEST(GtestFailAtTest, MessageContainsSpecifiedFileAndLineNumber) {
   GTEST_FAIL_AT("foo.cc", 42) << "Expected fatal failure in foo.cc";
 }
 
-#if GTEST_IS_THREADSAFE
-
 // A unary function that may die.
 void DieIf(bool should_die) {
   GTEST_CHECK_(!should_die) << " - death inside DieIf().";
@@ -530,8 +524,6 @@ class DeathTestAndMultiThreadsTest : public testing::Test {
   SpawnThreadNotifications notifications_;
   std::thread thread_;
 };
-
-#endif  // GTEST_IS_THREADSAFE
 
 // The MixedUpTestSuiteTest test case verifies that Google Test will fail a
 // test if it uses a different fixture class than what other tests in
@@ -989,8 +981,6 @@ TEST_F(ExpectFailureTest, ExpectNonFatalFailure) {
                           "failure.");
 }
 
-#if GTEST_IS_THREADSAFE
-
 class ExpectFailureWithThreadsTest : public ExpectFailureTest {
  protected:
   static void AddFailureInOtherThread(FailureMode failure) {
@@ -1030,8 +1020,6 @@ TEST_F(ScopedFakeTestPartResultReporterTest, InterceptOnlyCurrentThread) {
   // The two failures should not have been intercepted.
   EXPECT_EQ(0, results.size()) << "This shouldn't fail.";
 }
-
-#endif  // GTEST_IS_THREADSAFE
 
 TEST_F(ExpectFailureTest, ExpectFatalFailureOnAllThreads) {
   // Expected fatal failure, but succeeds.
