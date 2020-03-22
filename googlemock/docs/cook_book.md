@@ -2669,23 +2669,23 @@ behavior nondeterministic. A better way is to use gMock actions and
 `Notification` objects to force your asynchronous test to behave synchronously.
 
 ```cpp
-using ::testing::DoAll;
-using ::testing::InvokeWithoutArgs;
-using ::testing::Return;
+using ::testing::Notification;
 
 class MockEventDispatcher : public EventDispatcher {
-  MOCK_METHOD(bool, DispatchEvent, (int32), (override));
+public:
+  MOCK_METHOD(bool, DispatchEvent, (int32_t), (override));
 };
 
 ACTION_P(Notify, notification) {
-  notification->Notify();
+  notification->NotifyOne();
+  return true;
 }
 
 TEST(EventQueueTest, EnqueueEventTest) {
   MockEventDispatcher mock_event_dispatcher;
   EventQueue event_queue(&mock_event_dispatcher);
 
-  const int32 kEventId = 321;
+  const int32_t kEventId = 321;
   Notification done;
   EXPECT_CALL(mock_event_dispatcher, DispatchEvent(kEventId))
       .WillOnce(Notify(&done));
@@ -2702,9 +2702,9 @@ asynchronous call to finish. After that, our test suite is complete and we can
 safely exit.
 
 Note: this example has a downside: namely, if the expectation is not satisfied,
-our test will run forever. It will eventually time-out and fail, but it will
-take longer and be slightly harder to debug. To alleviate this problem, you can
-use `WaitForNotificationWithTimeout(ms)` instead of `WaitForNotification()`.
+our test will run forever. To alleviate this problem, you can use either
+`WaitForNotificationWithTimeout(ms)` instead of `WaitForNotification()` or
+an external test runner that detects timeouts.
 
 ## Misc Recipes on Using gMock
 
