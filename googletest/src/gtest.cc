@@ -2671,22 +2671,6 @@ Result HandleExceptionsInMethodIfSupported(
   }
 }
 
-void Notification::Notify() {
-  std::lock_guard<std::mutex> lock(mutex_);
-  notified_ = true;
-}
-
-void Notification::WaitForNotification() {
-  while(true) {
-    mutex_.lock();
-    const bool notified = notified_;
-    mutex_.unlock();
-    if (notified)
-      break;
-    SleepMilliseconds(10);
-  }
-}
-
 }  // namespace internal
 
 // Runs the test and updates the test result.
@@ -6463,6 +6447,62 @@ void ScopedTrace::PushTrace(const char* file, int line, std::string message) {
 ScopedTrace::~ScopedTrace()
     GTEST_LOCK_EXCLUDED_(&UnitTest::mutex_) {
   UnitTest::GetInstance()->PopGTestTrace();
+}
+
+void Notification::NotifyOne() GTEST_LOCK_EXCLUDED_(mutex_) {
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    type_ = NotificationType::kOne;
+  }
+  notifier_.notify_one();
+}
+
+void Notification::NotifyAll() GTEST_LOCK_EXCLUDED_(mutex_) {
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    type_ = NotificationType::kAll;
+  }
+  notifier_.notify_all();
+}
+
+void Notification::WaitForNotification() GTEST_LOCK_EXCLUDED_(mutex_) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  RegisterThread();
+  notifier_.wait(lock, [&] { return type_ != NotificationType::kNone; });
+  DeregisterThread();
+}
+
+void Notification::WaitForNotificationWithTimeout(int ms)
+    GTEST_LOCK_EXCLUDED_(mutex_) {
+  std::unique_lock<std::mutex> lock(mutex_);
+  RegisterThread();
+  notifier_.wait_for(lock, std::chrono::milliseconds(ms),
+                     [&] { return type_ != NotificationType::kNone; });
+  DeregisterThread();
+}
+
+void Notification::RegisterThread() GTEST_EXCLUSIVE_LOCK_REQUIRED_(mutex_) {
+  ++receipient_threads_;
+}
+
+void Notification::DeregisterThread() GTEST_EXCLUSIVE_LOCK_REQUIRED_(mutex_) {
+  --receipient_threads_;
+  ResetIfAllNotified();
+}
+
+void Notification::ResetIfAllNotified() GTEST_EXCLUSIVE_LOCK_REQUIRED_(mutex_) {
+  switch (type_) {
+    case NotificationType::kOne:
+      type_ = NotificationType::kNone;
+      break;
+    case NotificationType::kAll:
+      if (receipient_threads_ == 0)
+        type_ = NotificationType::kNone;
+      break;
+    case NotificationType::kNone:
+      // unreachable
+      break;
+  }
 }
 
 }  // namespace testing

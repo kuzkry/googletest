@@ -61,6 +61,7 @@ TEST(CommandLineFlagsTest, CanBeAccessedInCodeOnceGTestHIsIncluded) {
 #include <string.h>
 #include <time.h>
 
+#include <chrono>
 #include <cstdint>
 #include <map>
 #include <ostream>
@@ -219,6 +220,7 @@ using testing::GTEST_FLAG(throw_on_failure);
 using testing::IsNotSubstring;
 using testing::IsSubstring;
 using testing::Message;
+using testing::Notification;
 using testing::ScopedFakeTestPartResultReporter;
 using testing::StaticAssertTypeEq;
 using testing::Test;
@@ -7087,6 +7089,63 @@ GTEST_TEST(AlternativeNameTest, Works) {  // GTEST_TEST is the same as TEST.
                        "An expected failure");
   EXPECT_FATAL_FAILURE(GTEST_ASSERT_GT(1, 1) << "An expected failure",
                        "An expected failure");
+}
+
+class NotificationTest : public Test {
+ protected:
+  static void SimulateLongTask() {
+    // Theoretically unsafe but this delay should be long enough
+    // for other threads to reach WaitForNotification()
+    const std::chrono::milliseconds delay{500};
+    std::this_thread::sleep_for(delay);
+  }
+
+  static void WaitForOtherThreads() { SimulateLongTask(); }
+
+  Notification notification;
+};
+
+TEST_F(NotificationTest, WaitingWithTimeoutUnlocksThread) {
+  notification.WaitForNotificationWithTimeout(10);
+}
+
+TEST_F(NotificationTest, NotifyOne) {
+  std::thread worker([&] {
+    SimulateLongTask();
+    notification.NotifyOne();
+  });
+
+  notification.WaitForNotification();
+
+  // if successful, join() will not block
+  worker.join();
+}
+
+TEST_F(NotificationTest, MultipleNotifyOnes) {
+  std::thread worker([&] {
+    for (int i = 0; i < 2; ++i) {
+      SimulateLongTask();
+      notification.NotifyOne();
+    }
+  });
+
+  notification.WaitForNotification();
+  notification.WaitForNotification();
+
+  // if successful, join() will not block
+  worker.join();
+}
+
+TEST_F(NotificationTest, NotifyAll) {
+  std::thread worker1([&] { notification.WaitForNotification(); });
+  std::thread worker2([&] { notification.WaitForNotification(); });
+
+  WaitForOtherThreads();
+  notification.NotifyAll();
+
+  // if successful, join() will not block
+  worker1.join();
+  worker2.join();
 }
 
 // Tests for internal utilities necessary for implementation of the universal

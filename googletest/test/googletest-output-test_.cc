@@ -49,7 +49,7 @@ GTEST_DISABLE_MSC_WARNINGS_PUSH_(4127 /* conditional expression is constant */)
 using testing::ScopedFakeTestPartResultReporter;
 using testing::TestPartResultArray;
 
-using testing::internal::Notification;
+using testing::Notification;
 #endif
 
 namespace posix = ::testing::internal::posix;
@@ -300,7 +300,7 @@ static void ThreadWithScopedTrace(CheckPoints* check_points) {
     SCOPED_TRACE("Trace B");
     ADD_FAILURE()
         << "Expected failure #1 (in thread B, only trace B alive).";
-    check_points->n1.Notify();
+    check_points->n1.NotifyOne();
     check_points->n2.WaitForNotification();
 
     ADD_FAILURE()
@@ -308,7 +308,7 @@ static void ThreadWithScopedTrace(CheckPoints* check_points) {
   }  // Trace B dies here.
   ADD_FAILURE()
       << "Expected failure #4 (in thread B, only trace A alive).";
-  check_points->n3.Notify();
+  check_points->n3.NotifyOne();
 }
 
 TEST(SCOPED_TRACETest, WorksConcurrently) {
@@ -322,7 +322,7 @@ TEST(SCOPED_TRACETest, WorksConcurrently) {
     SCOPED_TRACE("Trace A");
     ADD_FAILURE()
         << "Expected failure #2 (in thread A, trace A & B both alive).";
-    check_points.n2.Notify();
+    check_points.n2.NotifyOne();
     check_points.n3.WaitForNotification();
 
     ADD_FAILURE()
@@ -500,7 +500,7 @@ struct SpawnThreadNotifications {
 // MultipleThreads test (below).
 static void ThreadRoutine(SpawnThreadNotifications* notifications) {
   // Signals the main thread that this thread has started.
-  notifications->spawn_thread_started.Notify();
+  notifications->spawn_thread_started.NotifyOne();
 
   // Waits for permission to finish from the main thread.
   notifications->spawn_thread_ok_to_terminate.WaitForNotification();
@@ -522,7 +522,7 @@ class DeathTestAndMultiThreadsTest : public testing::Test {
   // with later death tests.  This is unfortunate, but this class
   // cleans up after itself as best it can.
   void TearDown() override {
-    notifications_.spawn_thread_ok_to_terminate.Notify();
+    notifications_.spawn_thread_ok_to_terminate.NotifyOne();
     thread_.join();
   }
 

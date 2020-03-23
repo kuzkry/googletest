@@ -52,9 +52,11 @@
 #ifndef GTEST_INCLUDE_GTEST_GTEST_H_
 #define GTEST_INCLUDE_GTEST_GTEST_H_
 
+#include <condition_variable>
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <type_traits>
 #include <vector>
@@ -2465,6 +2467,41 @@ TestInfo* RegisterTest(const char* test_suite_name, const char* test_name,
       internal::SuiteApiResolver<TestT>::GetTearDownCaseOrSuite(file, line),
       new FactoryImpl{std::move(factory)});
 }
+
+// Allows a controller thread to pause execution of newly created
+// threads until notified. Any thread can become a notifier or
+// notifyee, though it's discouraged to switch roles back and forth as it
+// introduces race conditions. Instances of this class must be destroyed
+// if and only if no threads await a notification.
+//
+class Notification {
+  enum class NotificationType { kNone, kOne, kAll };
+
+ public:
+  Notification() : receipient_threads_(0), type_(NotificationType::kNone) {}
+
+  // Notifies one thread created with this notification to start.
+  void NotifyOne();
+
+  // Notifies all threads created with this notification to start.
+  void NotifyAll();
+
+  // Blocks until the controller thread notifies.
+  void WaitForNotification();
+
+  // Blocks until ms has elapsed or the controller thread notifies.
+  void WaitForNotificationWithTimeout(int ms);
+
+ private:
+  void RegisterThread();
+  void DeregisterThread();
+  void ResetIfAllNotified();
+
+  std::mutex mutex_;  // Protects all except for notifier_
+  std::condition_variable notifier_;
+  unsigned receipient_threads_;
+  NotificationType type_;
+};
 
 }  // namespace testing
 
