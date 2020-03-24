@@ -6452,6 +6452,8 @@ ScopedTrace::~ScopedTrace()
 void Notification::NotifyOne() GTEST_LOCK_EXCLUDED_(mutex_) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
+    GTEST_CHECK_(type_ == NotificationType::kNone)
+        << "Previous notification was not received.";
     type_ = NotificationType::kOne;
   }
   notifier_.notify_one();
@@ -6460,6 +6462,8 @@ void Notification::NotifyOne() GTEST_LOCK_EXCLUDED_(mutex_) {
 void Notification::NotifyAll() GTEST_LOCK_EXCLUDED_(mutex_) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
+    GTEST_CHECK_(type_ == NotificationType::kNone)
+        << "Previous notification was not received.";
     type_ = NotificationType::kAll;
   }
   notifier_.notify_all();

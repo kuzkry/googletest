@@ -7148,6 +7148,25 @@ TEST_F(NotificationTest, NotifyAll) {
   worker2.join();
 }
 
+TEST_F(NotificationTest, ExitsWhenNotifiedTwiceInRow_SameNotificationTypes) {
+  EXPECT_DEATH_IF_SUPPORTED(
+      {
+        notification.NotifyOne();
+        notification.NotifyOne();
+      },
+      "Previous notification was not received.");
+}
+
+TEST_F(NotificationTest,
+       ExitsWhenNotifiedTwiceInRow_DifferentNotificationTypes) {
+  EXPECT_DEATH_IF_SUPPORTED(
+      {
+        notification.NotifyAll();
+        notification.NotifyOne();
+      },
+      "Previous notification was not received.");
+}
+
 // Tests for internal utilities necessary for implementation of the universal
 // printing.
 
