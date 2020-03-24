@@ -286,7 +286,9 @@ using testing::internal::kTestTypeIdInGoogleTest;
 using testing::kMaxStackTraceDepth;
 
 #if GTEST_HAS_STREAM_REDIRECTION
+using testing::internal::CaptureStderr;
 using testing::internal::CaptureStdout;
+using testing::internal::GetCapturedStderr;
 using testing::internal::GetCapturedStdout;
 #endif
 
@@ -7147,6 +7149,39 @@ TEST_F(NotificationTest, NotifyAll) {
   worker1.join();
   worker2.join();
 }
+
+#if GTEST_HAS_STREAM_REDIRECTION
+
+TEST_F(NotificationTest, WarnsWhenNotifiedTwiceInRow_SameNotificationTypes) {
+  CaptureStderr();
+
+  notification.NotifyOne();
+  notification.NotifyOne();
+
+  const std::string output = GetCapturedStderr();
+
+  EXPECT_PRED_FORMAT2(IsSubstring,
+                      "Calling NotifyOne() while the previous notification has "
+                      "not been received is unsafe.",
+                      output);
+}
+
+TEST_F(NotificationTest,
+       WarnsWhenNotifiedTwiceInRow_DifferentNotificationTypes) {
+  CaptureStderr();
+
+  notification.NotifyAll();
+  notification.NotifyOne();
+
+  const std::string output = GetCapturedStderr();
+
+  EXPECT_PRED_FORMAT2(IsSubstring,
+                      "Calling NotifyOne() while the previous notification has "
+                      "not been received is unsafe.",
+                      output);
+}
+
+#endif  // GTEST_HAS_STREAM_REDIRECTION
 
 // Tests for internal utilities necessary for implementation of the universal
 // printing.
