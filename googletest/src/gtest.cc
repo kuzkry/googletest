@@ -6452,6 +6452,9 @@ ScopedTrace::~ScopedTrace()
 void Notification::NotifyOne() GTEST_LOCK_EXCLUDED_(mutex_) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (receipient_threads_ == 0)
+      return;
+
     type_ = NotificationType::kOne;
   }
   notifier_.notify_one();
@@ -6460,6 +6463,9 @@ void Notification::NotifyOne() GTEST_LOCK_EXCLUDED_(mutex_) {
 void Notification::NotifyAll() GTEST_LOCK_EXCLUDED_(mutex_) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (receipient_threads_ == 0)
+      return;
+
     type_ = NotificationType::kAll;
   }
   notifier_.notify_all();
