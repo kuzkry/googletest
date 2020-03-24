@@ -2701,12 +2701,8 @@ additional action to notify the `Notification` object. Now we can just call
 asynchronous call to finish. After that, our test suite is complete and we can
 safely exit.
 
-Note: this example has two downsides:
-1) `done.WaitForNotification()` can miss a notification if a backgroud thread
-happen to be executed before it, causing the test to run forever
-2) if the expectation is not satisfied, the test will also stuck
-
-Both of these problems can be alleviated by using either
+Note: this example has a downside: namely, if the expectation is not satisfied,
+our test will run forever. To alleviate this problem, you can use either
 `WaitForNotificationWithTimeout(ms)` instead of `WaitForNotification()` or
 an external test runner that detects timeouts.
 

@@ -7109,25 +7109,6 @@ TEST_F(NotificationTest, WaitingWithTimeoutUnlocksThread) {
   notification.WaitForNotificationWithTimeout(10);
 }
 
-TEST_F(NotificationTest, CannotNotifyInAdvance) {
-  std::chrono::high_resolution_clock::duration worker_duration;
-  const std::chrono::milliseconds worker_timeout(100);
-
-  notification.NotifyOne();
-
-  std::thread worker([&] {
-    auto t1 = std::chrono::high_resolution_clock::now();
-    notification.WaitForNotificationWithTimeout(worker_timeout.count());
-    auto t2 = std::chrono::high_resolution_clock::now();
-    worker_duration = t2 - t1;
-  });
-  // if successful, join() will not block
-  worker.join();
-
-  // if notification would be kept than this could fail
-  EXPECT_GE(worker_duration, worker_timeout);
-}
-
 TEST_F(NotificationTest, NotifyOne) {
   std::thread worker([&] {
     SimulateLongTask();
